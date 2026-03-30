@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+import pandas as pd
 import pytest
 import json
 from unittest.mock import Mock, patch
@@ -305,4 +307,57 @@ def sample_transfers_transactions():
             "operationAmount": {"amount": "15000.00", "currency": {"code": "RUB"}}
         }
     ]
+# DataFrame
+@pytest.fixture
+def sample_transactions_df():
+    today = datetime.now()
+    data = {
+        'date': [
+            today - timedelta(days=30),
+            today - timedelta(days=60),
+            today - timedelta(days=85),  # Топливо 1
+            today - timedelta(days=45),
+            today - timedelta(days=15),
+            today - timedelta(days=5),
+            today - timedelta(days=120),
+            today - timedelta(days=40),  # Топливо 2
+        ],
+        'amount': [1500, 2000, 800, 3000, 1000, 500, 1000, 1200],
+        'description': [
+            'Покупка в Пятерочке', 'Макдоналдс', 'АЗС Лукойл',
+            'Лента', 'Перекресток', 'Пятерочка', 'Перевод другу', 'Газпромнефть'
+        ],
+        'category': [
+            'Супермаркеты', 'Фастфуд', 'Топливо',
+            'Супермаркеты', 'Супермаркеты', 'Супермаркеты', 'Переводы', 'Топливо'
+        ]
+    }
+    df = pd.DataFrame(data)
+    df['date'] = pd.to_datetime(df['date'])
+    return df
 
+
+@pytest.fixture
+def sample_transactions_df_no_category():
+    today = datetime.now()
+    data = {
+        'date': [
+            today - timedelta(days=30),
+            today - timedelta(days=60),
+            today - timedelta(days=90),
+        ],
+        'amount': [1500, 2000, 800],
+        'description': [
+            'Покупка в Пятерочке',
+            'Макдоналдс',
+            'АЗС Лукойл',
+        ],
+    }
+    df = pd.DataFrame(data)
+    df['date'] = pd.to_datetime(df['date'])
+    return df
+
+
+@pytest.fixture
+def sample_transactions_df_empty():
+    return pd.DataFrame()
