@@ -1,15 +1,10 @@
-import pytest
 import json
-from unittest.mock import Mock, patch, mock_open
-from src.views import (
-    transaction_convert,
-    get_greeting,
-    get_card_spending,
-    determine_category,
-    get_top_transactions,
-    get_financial_data,
-    load_transactions_from_file
-)
+from unittest.mock import Mock, mock_open, patch
+
+import pytest
+
+from src.views import (determine_category, get_card_spending, get_financial_data, get_greeting, get_top_transactions,
+                       load_transactions_from_file, transaction_convert)
 
 """Тесты для функции конвертации валют"""
 
@@ -20,7 +15,7 @@ def test_convert_rub_to_rub(sample_transaction_rub):
     assert result == 1000.50
 
 
-@patch('src.views.requests.get')
+@patch("src.views.requests.get")
 def test_convert_usd_to_rub_success(mock_get, sample_transaction_usd, mock_convert_api_success):
     """Тест: успешная конвертация USD в RUB"""
     mock_get.return_value = mock_convert_api_success
@@ -31,7 +26,7 @@ def test_convert_usd_to_rub_success(mock_get, sample_transaction_usd, mock_conve
     mock_get.assert_called_once()
 
 
-@patch('src.views.requests.get')
+@patch("src.views.requests.get")
 def test_convert_usd_to_rub_failed(mock_get, sample_transaction_usd, mock_convert_api_failure):
     """Тест: ошибка при конвертации (возврат исходной суммы)"""
     mock_get.return_value = mock_convert_api_failure
@@ -40,6 +35,7 @@ def test_convert_usd_to_rub_failed(mock_get, sample_transaction_usd, mock_conver
 
     assert result == 100.00
 
+
 """Тесты для функции приветствия"""
 
 
@@ -47,6 +43,7 @@ def test_greeting_morning(mock_datetime_morning):
     """Тест: утреннее приветствие"""
     result = get_greeting()
     assert result == "Доброе утро"
+
 
 def test_greeting_afternoon(mock_datetime_afternoon):
     """Тест: дневное приветствие"""
@@ -65,17 +62,21 @@ def test_greeting_night(mock_datetime_night):
     result = get_greeting()
     assert result == "Доброй ночи"
 
-@pytest.mark.parametrize("hour,expected", [
-    (5, "Доброе утро"),
-    (11, "Доброе утро"),
-    (12, "Добрый день"),
-    (17, "Добрый день"),
-    (18, "Добрый вечер"),
-    (22, "Добрый вечер"),
-    (23, "Доброй ночи"),
-    (4, "Доброй ночи"),
-])
-@patch('src.views.datetime')
+
+@pytest.mark.parametrize(
+    "hour,expected",
+    [
+        (5, "Доброе утро"),
+        (11, "Доброе утро"),
+        (12, "Добрый день"),
+        (17, "Добрый день"),
+        (18, "Добрый вечер"),
+        (22, "Добрый вечер"),
+        (23, "Доброй ночи"),
+        (4, "Доброй ночи"),
+    ],
+)
+@patch("src.views.datetime")
 def test_greeting_parametrized(mock_datetime, hour, expected):
     """Параметризованный тест приветствий"""
     mock_now = Mock()
@@ -89,22 +90,25 @@ def test_greeting_parametrized(mock_datetime, hour, expected):
 """Тесты для определения категории транзакций"""
 
 
-@pytest.mark.parametrize("description,expected_category", [
-    ("Пятерочка", "Супермаркеты"),
-    ("Макдоналдс", "Фастфуд"),
-    ("АЗС Лукойл", "Топливо"),
-    ("Кинотеатр", "Развлечения"),
-    ("Аптека", "Медицина"),
-    ("Перевод другу", "Переводы"),
-    ("ЖКУ Квартира", "ЖКХ"),
-    ("Ozon.ru", "Различные товары"),
-    ("Кэшбэк", "Бонусы"),
-    ("Снятие наличных", "Наличные"),
-    ("МТС", "Связь"),
-    ("Яндекс Такси", "Транспорт"),
-    ("Неизвестная операция", "Прочее"),
-    ("", "Прочее"),
-])
+@pytest.mark.parametrize(
+    "description,expected_category",
+    [
+        ("Пятерочка", "Супермаркеты"),
+        ("Макдоналдс", "Фастфуд"),
+        ("АЗС Лукойл", "Топливо"),
+        ("Кинотеатр", "Развлечения"),
+        ("Аптека", "Медицина"),
+        ("Перевод другу", "Переводы"),
+        ("ЖКУ Квартира", "ЖКХ"),
+        ("Ozon.ru", "Различные товары"),
+        ("Кэшбэк", "Бонусы"),
+        ("Снятие наличных", "Наличные"),
+        ("МТС", "Связь"),
+        ("Яндекс Такси", "Транспорт"),
+        ("Неизвестная операция", "Прочее"),
+        ("", "Прочее"),
+    ],
+)
 def test_determine_category_parametrized(description, expected_category):
     """Параметризованный тест категорий"""
     result = determine_category(description)
@@ -121,7 +125,7 @@ def test_determine_category_with_category_data(category_test_data):
 """Тесты для расчета статистики по картам"""
 
 
-@patch('src.views.transaction_convert')
+@patch("src.views.transaction_convert")
 def test_card_spending_single_card(mock_convert, sample_transactions_list):
     """Тест: расходы по одной карте"""
     mock_convert.side_effect = [1500.00, 4625.00, 2000.00, -500.00, 800.00]
@@ -133,7 +137,8 @@ def test_card_spending_single_card(mock_convert, sample_transactions_list):
     assert result[0]["total_spent"] == 6925.00  # 1500 + 4625 + 800
     assert result[0]["cashback"] == 69.25
 
-@patch('src.views.transaction_convert')
+
+@patch("src.views.transaction_convert")
 def test_card_spending_negative_amount(mock_convert, sample_transaction_negative):
     """Тест: пропуск отрицательных сумм"""
     mock_convert.return_value = -500
@@ -143,14 +148,11 @@ def test_card_spending_negative_amount(mock_convert, sample_transaction_negative
     assert result == []
 
 
-@patch('src.views.transaction_convert')
-@patch('src.views.determine_category')
+@patch("src.views.transaction_convert")
+@patch("src.views.determine_category")
 def test_top_transactions_limit(mock_category, mock_convert):
     """Тест: ограничение количества транзакций"""
-    transactions = [
-        {"date": "2024-01-15 10:00:00", "description": f"Транзакция {i}"}
-        for i in range(10)
-    ]
+    transactions = [{"date": "2024-01-15 10:00:00", "description": f"Транзакция {i}"} for i in range(10)]
     mock_convert.side_effect = [1000, 900, 800, 700, 600, 500, 400, 300, 200, 100]
     mock_category.return_value = "Тест"
 
@@ -162,8 +164,8 @@ def test_top_transactions_limit(mock_category, mock_convert):
     assert result[2]["amount"] == 800
 
 
-@patch('src.views.transaction_convert')
-@patch('src.views.determine_category')
+@patch("src.views.transaction_convert")
+@patch("src.views.determine_category")
 def test_top_transactions_sorting(mock_category, mock_convert):
     """Тест: правильная сортировка транзакций"""
     transactions = [
@@ -180,8 +182,9 @@ def test_top_transactions_sorting(mock_category, mock_convert):
     assert result[1]["amount"] == 500
     assert result[2]["amount"] == 100
 
-@patch('src.views.transaction_convert')
-@patch('src.views.determine_category')
+
+@patch("src.views.transaction_convert")
+@patch("src.views.determine_category")
 def test_top_transactions_with_negative(mock_category, mock_convert):
     """Тест: учет абсолютных значений для отрицательных сумм"""
     transactions = [
@@ -195,6 +198,7 @@ def test_top_transactions_with_negative(mock_category, mock_convert):
 
     assert result[0]["amount"] == -1000
     assert result[1]["amount"] == 500
+
 
 """Тесты для загрузки транзакций из файла"""
 
@@ -213,12 +217,14 @@ def test_load_file_not_found(mock_file):
     result = load_transactions_from_file("not_exist.json")
     assert result == []
 
-@patch("builtins.open", new_callable=mock_open, read_data='invalid json')
+
+@patch("builtins.open", new_callable=mock_open, read_data="invalid json")
 def test_load_invalid_json(mock_file):
     """Тест: невалидный JSON"""
     result = load_transactions_from_file("invalid.json")
     assert result == []
     mock_file.assert_called_once_with("invalid.json", "r", encoding="utf-8")
+
 
 @patch("builtins.open", side_effect=PermissionError())
 def test_load_permission_error(mock_file):
@@ -227,31 +233,27 @@ def test_load_permission_error(mock_file):
     assert result == []
     mock_file.assert_called_once_with("protected.json", "r", encoding="utf-8")
 
-
     """Тест для получения финансовых данных"""
 
-@patch('src.views.requests.get')
-@patch('src.views.os.getenv')
-def test_get_financial_data_success(mock_getenv, mock_get,
-                                    mock_currency_api_success,
-                                    mock_stock_api_success,
-                                    temp_settings_file):
 
+@patch("src.views.requests.get")
+@patch("src.views.os.getenv")
+def test_get_financial_data_success(
+    mock_getenv, mock_get, mock_currency_api_success, mock_stock_api_success, temp_settings_file
+):
     """Тест: успешное получение данных"""
     mock_getenv.return_value = "test_api_key"
     mock_get.side_effect = [mock_currency_api_success, mock_stock_api_success]
 
-    with patch('src.views.Path') as mock_path:
+    with patch("src.views.Path") as mock_path:
         mock_path.return_value = temp_settings_file
-        with patch('builtins.open', mock_open(read_data=json.dumps({
-            "user_currencies": ["USD", "EUR"],
-            "user_stocks": ["AAPL"]
-        }))):
+        with patch(
+            "builtins.open",
+            mock_open(read_data=json.dumps({"user_currencies": ["USD", "EUR"], "user_stocks": ["AAPL"]})),
+        ):
             result = get_financial_data()
 
     assert "currency_rates" in result
     assert "stock_prices" in result
     assert len(result["currency_rates"]) == 2
     assert len(result["stock_prices"]) == 1
-
-

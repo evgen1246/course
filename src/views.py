@@ -3,19 +3,19 @@ import json
 import logging
 import os
 import re
+from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List
+from typing import Any, Dict, List
 
 import requests
-from collections import defaultdict
 from dotenv import load_dotenv
 
-
-logging.basicConfig(level = logging.INFO,
-                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    handlers=[logging.FileHandler('app.log', encoding='utf8'),
-                              logging.StreamHandler()])
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.FileHandler("app.log", encoding="utf8"), logging.StreamHandler()],
+)
 
 logger = logging.getLogger(__name__)
 load_dotenv()
@@ -57,13 +57,13 @@ def get_greeting() -> str:
     logger.debug(f"Текущий час: {current_hour}")
 
     if 5 <= current_hour < 12:
-        greeting = 'Доброе утро'
+        greeting = "Доброе утро"
     elif 12 <= current_hour < 18:
-        greeting = 'Добрый день'
+        greeting = "Добрый день"
     elif 18 <= current_hour < 23:
-        greeting = 'Добрый вечер'
+        greeting = "Добрый вечер"
     else:
-        greeting = 'Доброй ночи'
+        greeting = "Доброй ночи"
 
     logger.info(f"Приветствие: {greeting}")
     return greeting
@@ -78,7 +78,7 @@ def get_card_spending(transactions: List[Dict]) -> List[Dict]:
     """
     logger.info(f"Начало расчета статистики по картам. Всего транзакций: {len(transactions)}")
 
-    card_stat = defaultdict(lambda: {"total_spent": 0.0, "last_digits": ""})
+    card_stat: Dict[str, Dict[str, Any]] = defaultdict(lambda: {"total_spent": 0.0, "last_digits": ""})
     processed_count = 0
     skipped_count = 0
 
@@ -114,7 +114,7 @@ def get_card_spending(transactions: List[Dict]) -> List[Dict]:
             if not card_stat[last_digits]["last_digits"]:
                 card_stat[last_digits]["last_digits"] = last_digits
 
-            card_stat[last_digits]["total_spent"] += amount_rub
+            card_stat[last_digits]["total_spent"] = float(card_stat[last_digits]["total_spent"]) + amount_rub
             processed_count += 1
             logger.debug(f"Добавлено {amount_rub} RUB к карте ****{last_digits}")
 
@@ -128,13 +128,9 @@ def get_card_spending(transactions: List[Dict]) -> List[Dict]:
     # Результаты:
     result = []
     for last_digits, stats in card_stat.items():
-        total_spent = stats['total_spent']
+        total_spent = float(stats["total_spent"])
         cashback = round(total_spent / 100, 2)
-        result.append({
-            'last_digits': last_digits,
-            'total_spent': round(total_spent, 2),
-            'cashback': cashback
-        })
+        result.append({"last_digits": last_digits, "total_spent": round(total_spent, 2), "cashback": cashback})
         logger.info(f"Карта ****{last_digits}: потрачено {total_spent:.2f} RUB, кэшбэк {cashback:.2f} RUB")
 
     return result
@@ -191,28 +187,30 @@ def get_top_transactions(transactions: List[Dict], limit: int = 5) -> List[Dict]
 
             category = transaction.get("category", "")
             if not category:
-                category = determine_category(transaction.get('description', ''))
+                category = determine_category(transaction.get("description", ""))
 
             # Формат дат
-            date_str = transaction.get('date', '')
+            date_str = transaction.get("date", "")
             try:
-                if 'T' in date_str:
+                if "T" in date_str:
                     date_object = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
-                    formatted_date = date_object.strftime('%d.%m.%Y')
+                    formatted_date = date_object.strftime("%d.%m.%Y")
                 else:
-                    date_object = datetime.strptime(date_str, '%Y-%m-%d %H:%M:%S')
-                    formatted_date = date_object.strftime('%d.%m.%Y')
+                    date_object = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
+                    formatted_date = date_object.strftime("%d.%m.%Y")
             except ValueError as e:
                 logger.warning(f"Ошибка парсинга даты '{date_str}': {e}")
-                formatted_date = date_str[:10].replace('-', '.')
+                formatted_date = date_str[:10].replace("-", ".")
 
-            expenditure_transactions.append({
-                "date": formatted_date,
-                "amount": round(amount_rub, 2),
-                "category": category,
-                "description": transaction.get("description", ""),
-                "original_amount": amount_rub,
-            })
+            expenditure_transactions.append(
+                {
+                    "date": formatted_date,
+                    "amount": round(amount_rub, 2),
+                    "category": category,
+                    "description": transaction.get("description", ""),
+                    "original_amount": amount_rub,
+                }
+            )
             logger.debug(f"Добавлена транзакция: {formatted_date} - {amount_rub:.2f} RUB - {category}")
 
         except Exception as e:
@@ -228,12 +226,14 @@ def get_top_transactions(transactions: List[Dict], limit: int = 5) -> List[Dict]
     # Возврат топа:
     top_transactions = []
     for i, transaction in enumerate(sorted_transactions[:limit], 1):
-        top_transactions.append({
-            "date": transaction["date"],
-            "amount": transaction["amount"],
-            "category": transaction["category"],
-            "description": transaction["description"],
-        })
+        top_transactions.append(
+            {
+                "date": transaction["date"],
+                "amount": transaction["amount"],
+                "category": transaction["category"],
+                "description": transaction["description"],
+            }
+        )
         logger.info(f"Топ-{i}: {transaction['description'][:50]} - {transaction['amount']:.2f} RUB")
 
     logger.info(f"Возвращено {len(top_transactions)} транзакций")
@@ -278,7 +278,7 @@ def get_financial_data() -> Dict:
     currency_rates = []
 
     try:
-        url = 'https://www.cbr-xml-daily.ru/daily_json.js'
+        url = "https://www.cbr-xml-daily.ru/daily_json.js"
         currency_response = requests.get(url, timeout=10)
         currency_response.raise_for_status()
         data = currency_response.json()
@@ -322,8 +322,12 @@ def get_financial_data() -> Dict:
         logger.warning("Получите бесплатный ключ на https://www.alphavantage.co/support/#api-key")
 
         fallback_prices = {
-            "AAPL": 150.12, "AMZN": 3173.18, "GOOGL": 2742.39,
-            "MSFT": 296.71, "TSLA": 1007.08, "META": 310.20,
+            "AAPL": 150.12,
+            "AMZN": 3173.18,
+            "GOOGL": 2742.39,
+            "MSFT": 296.71,
+            "TSLA": 1007.08,
+            "META": 310.20,
         }
 
         for symbol in user_stocks:
@@ -354,12 +358,12 @@ def get_financial_data() -> Dict:
                     price = 100.0
 
                 elif "Time Series (Daily)" in data:
-                    time_series = data['Time Series (Daily)']
+                    time_series = data["Time Series (Daily)"]
 
                     if time_series:
                         latest_date = max(time_series.keys())
                         latest_data = time_series[latest_date]
-                        price = float(latest_data.get('4. close', 0))
+                        price = float(latest_data.get("4. close", 0))
 
                         if price > 0:
                             logger.info(f"{symbol}: ${price:.2f} ({latest_date})")
@@ -383,27 +387,29 @@ def get_financial_data() -> Dict:
                 logger.error(f"{symbol}: Ошибка: {e}", exc_info=True)
                 stock_prices.append({"stock": symbol, "price": 100.0})
 
-    result = {'currency_rates': currency_rates, 'stock_prices': stock_prices}
+    result = {"currency_rates": currency_rates, "stock_prices": stock_prices}
     logger.info(f"Финансовые данные получены: {len(currency_rates)} валют, {len(stock_prices)} акций")
 
     return result
 
+
 def load_transactions_from_file(file_path: str) -> List[Dict]:
     """Загружает транзакции из JSON файла"""
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             transactions = json.load(f)
 
         return transactions
     except FileNotFoundError:
 
         return []
-    except json.JSONDecodeError as e:
+    except json.JSONDecodeError:
 
         return []
-    except Exception as e:
+    except Exception:
 
         return []
+
 
 if __name__ == "__main__":
     test_transactions = [
@@ -411,14 +417,14 @@ if __name__ == "__main__":
             "date": "2021-12-21 10:30:00",
             "description": "Перевод Кредитная карта. ТП 10.2 RUR",
             "from": "Карта 1234 5678 9012 5814",
-            "operationAmount": {"amount": "1198.23", "currency": {"code": "RUB"}}
+            "operationAmount": {"amount": "1198.23", "currency": {"code": "RUB"}},
         },
         {
             "date": "2021-12-20 14:20:00",
             "description": "Лента",
             "from": "Карта 1234 5678 9012 5814",
-            "operationAmount": {"amount": "829.00", "currency": {"code": "RUB"}}
-        }
+            "operationAmount": {"amount": "829.00", "currency": {"code": "RUB"}},
+        },
     ]
 
     # Формируем полный ответ
@@ -427,7 +433,7 @@ if __name__ == "__main__":
         "cards": get_card_spending(test_transactions),
         "top_transactions": get_top_transactions(test_transactions),
         "currency_rates": get_financial_data()["currency_rates"],
-        "stock_prices": get_financial_data()["stock_prices"]
+        "stock_prices": get_financial_data()["stock_prices"],
     }
 
     # Выводим JSON
