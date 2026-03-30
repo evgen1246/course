@@ -261,3 +261,48 @@ def mock_env_without_api_key():
     """Фикстура: мок без API ключа для акций"""
     with patch.dict('os.environ', {}, clear=True):
         yield
+
+#Поиск по переводам
+
+@pytest.fixture
+def sample_transfers_transactions():
+    """Фикстура: транзакции для тестирования переводов"""
+    return [
+        {
+            "date": "2024-01-15 10:30:00",
+            "description": "Перевод Валерий А.",
+            "category": "Переводы",
+            "operationAmount": {"amount": "5000.00", "currency": {"code": "RUB"}}
+        },
+        {
+            "date": "2024-01-16 14:20:00",
+            "description": "Перевод Сергей З.",
+            "category": "Переводы",
+            "operationAmount": {"amount": "3000.00", "currency": {"code": "RUB"}}
+        },
+        {
+            "date": "2024-01-17 09:15:00",
+            "description": "Перевод Артем П.",
+            "category": "Переводы",
+            "operationAmount": {"amount": "7000.00", "currency": {"code": "RUB"}}
+        },
+        {
+            "date": "2024-01-18 18:00:00",
+            "description": "Перевод на карту 1234",
+            "category": "Переводы",
+            "operationAmount": {"amount": "2000.00", "currency": {"code": "RUB"}}
+        },
+        {
+            "date": "2024-01-19 11:45:00",
+            "description": "Оплата ЖКХ",
+            "category": "ЖКХ",
+            "operationAmount": {"amount": "4500.00", "currency": {"code": "RUB"}}
+        },
+        {
+            "date": "2024-01-20 15:30:00",
+            "description": "Перевод Дмитрий К.",
+            "category": "Переводы",
+            "operationAmount": {"amount": "15000.00", "currency": {"code": "RUB"}}
+        }
+    ]
+
